@@ -66,15 +66,32 @@ namespace Dining_Philosophers
         {
             Console.WriteLine($"Philosopher {index} started!");
 
+            bool chopstickTaken = false;
+
             // lock the first chopstick
-            Monitor.Enter(chopstick1);
+            Monitor.TryEnter(chopstick1, ref chopstickTaken);
+
+            if (chopstickTaken == false)
+            {
+                Console.WriteLine("***************************");
+                Console.WriteLine("Algorithm Failed");
+                Console.WriteLine("***************************");
+            }
 
             Console.WriteLine($"Philosopher {index} got first chopstick!");
 
             TakeChopstick2();
 
+            chopstickTaken = false;
             // lock the second chopstick
-            Monitor.Enter(chopstick2);
+            Monitor.TryEnter(chopstick2, ref chopstickTaken);
+
+            if (chopstickTaken == false)
+            {
+                Console.WriteLine("***************************");
+                Console.WriteLine("Algorithm Failed");
+                Console.WriteLine("***************************");
+            }
 
             Console.WriteLine($"Philosopher {index} got second chopstick!");
             Eat(index);
@@ -122,45 +139,42 @@ namespace Dining_Philosophers
             stopwatch.Start();
             Console.WriteLine("Starting philosophers...");
 
-            List<int> runningThreads = new List<int>();
-            int maxNumOfConcurrentThreads = NUM_PHILOSOPHERS / 2;
+            List<int> eatingPhilosophers = new List<int>();
+            int maxNumOfConcurrentEatingPhilosophers = NUM_PHILOSOPHERS / 2;
 
             while (stopwatch.ElapsedMilliseconds < RUN_TIME)
             {
-                if (runningThreads.Count == maxNumOfConcurrentThreads)
+                if (eatingPhilosophers.Count == maxNumOfConcurrentEatingPhilosophers)
                 {
                     for (int philosopherIndex = 0; philosopherIndex < NUM_PHILOSOPHERS; philosopherIndex++)
                     {
-                        if (runningThreads.Contains(philosopherIndex) &&
+                        if (eatingPhilosophers.Contains(philosopherIndex) &&
                             philosopher[philosopherIndex].ThreadState == System.Threading.ThreadState.Stopped)
                         {
-                            runningThreads.Remove(philosopherIndex);
+                            eatingPhilosophers.Remove(philosopherIndex);
                         }
                     }
                 }
 
                 else
                 {
-                    int newPhilosopherIndex = SelectPhilosopher(runningThreads);
-                    runningThreads.Add(newPhilosopherIndex);
-
-                    object chopstick1 = chopstick[newPhilosopherIndex];
-                    object chopstick2 = chopstick[(newPhilosopherIndex + 1) % NUM_PHILOSOPHERS];
-
-                    philosopher[newPhilosopherIndex] = new Thread(
-                    _ =>
+                    while (eatingPhilosophers.Count != maxNumOfConcurrentEatingPhilosophers)
                     {
-                        DoWork(newPhilosopherIndex, chopstick1, chopstick2);
-                    });
+                        int newPhilosopherIndex = SelectPhilosopher(eatingPhilosophers);
+                        eatingPhilosophers.Add(newPhilosopherIndex);
 
-                    philosopher[newPhilosopherIndex].Start();
+                        object chopstick1 = chopstick[newPhilosopherIndex];
+                        object chopstick2 = chopstick[(newPhilosopherIndex + 1) % NUM_PHILOSOPHERS];
+
+                        philosopher[newPhilosopherIndex] = new Thread(
+                        _ =>
+                        {
+                            DoWork(newPhilosopherIndex, chopstick1, chopstick2);
+                        });
+
+                        philosopher[newPhilosopherIndex].Start();
+                    }
                 }
-            }
-
-
-            for (int i = 0; i < NUM_PHILOSOPHERS; i++)
-            {
-                philosopher[i].Start();
             }
 
             // wait for all philosophers to complete
@@ -181,9 +195,34 @@ namespace Dining_Philosophers
             Console.WriteLine("Optimal time spent eating: {0}ms", stopwatch.ElapsedMilliseconds * 2);
         }
 
-        private static int SelectPhilosopher(List<int> runningThreads)
+        private static int SelectPhilosopher(List<int> eatingPhilosophers)
         {
-            List<int> 
+            List<int> validPhilosophers = Enumerable.Range(0, NUM_PHILOSOPHERS).ToList();
+
+            foreach (var eatingPhilosopher in eatingPhilosophers)
+            {
+                int prevPhilosopher = (eatingPhilosopher - 1 + NUM_PHILOSOPHERS) % NUM_PHILOSOPHERS;
+                int nextPhilosopher = (eatingPhilosopher + 1) % NUM_PHILOSOPHERS;
+
+                if (validPhilosophers.Contains(eatingPhilosopher))
+                {
+                    validPhilosophers.Remove(eatingPhilosopher);
+                }
+
+                if (validPhilosophers.Contains(prevPhilosopher))
+                {
+                    validPhilosophers.Remove(prevPhilosopher);
+                }
+
+                if (validPhilosophers.Contains(nextPhilosopher))
+                {
+                    validPhilosophers.Remove(nextPhilosopher);
+                }
+            }
+
+            Random rand = new Random();
+            var randomPhilIndex = rand.Next(validPhilosophers.Count);
+            return validPhilosophers[randomPhilIndex];
         }
     }
 }
