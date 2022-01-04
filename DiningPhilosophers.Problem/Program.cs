@@ -10,20 +10,17 @@ namespace Dining_Philosophers
         // the number of philosophers
         public const int NUM_PHILOSOPHERS = 5;
 
-        // maximum amount of time spent thinking, in milliseconds
-        public const int THINK_TIME = 10;
-
         // maximum amount of time spent eating, in milliseconds
-        public const int EAT_TIME = 10;
+        public const int EAT_TIME = 100;
 
         // total program runtime in milliseconds
         public const int RUN_TIME = 2000;
 
-        // maximum amount of time 
-        public const int CHOPSTICK_HANDLE_TIME = 3;
+        // the time it needs until philosopher takes the second fork after taking the first one
+        public const int FORK_HANDLE_TIME = 5;
 
-        // the chopsticks, implemented as sync objects
-        public static object[] chopstick = new object[NUM_PHILOSOPHERS];
+        // the forks, implemented as sync objects
+        public static object[] forks = new object[NUM_PHILOSOPHERS];
 
         // the philosophers, implemented as threads
         public static Thread[] philosopher = new Thread[NUM_PHILOSOPHERS];
@@ -37,13 +34,6 @@ namespace Dining_Philosophers
         // a sync object to protect access to the eatingTime field
         public static object eatingSync = new object();
 
-        // this method lets the philosopher think
-        public static void Think()
-        {
-            Random random = new Random();
-            Thread.Sleep(random.Next(THINK_TIME));
-        }
-
         // this method lets the philosopher eat
         public static void Eat(int index)
         {
@@ -51,45 +41,40 @@ namespace Dining_Philosophers
             int time_spent_eating = random.Next(EAT_TIME);
             Thread.Sleep(time_spent_eating);
 
-            // log our total eating time
+            // save our total eating time
             lock (eatingSync)
             {
                 eatingTime[index] += time_spent_eating;
             }
+            Console.WriteLine($"Philosopher {index} has eaten!");
         }
 
         // the philosopher work method - think and eat until timeout
-        public static void DoWork(int index, object chopstick1, object chopstick2)
+        public static void DoWork(int index, int fork1Index, int fork2Index)
         {
             Console.WriteLine($"Philosopher {index} started!");
             do
             {
-                // lock the first chopstick
-                Monitor.Enter(chopstick1);
-                Console.WriteLine($"Philosopher {index} got first chopstick!");
-
-                TakeChopstick2();
-
-                // lock the second chopstick
-                Monitor.Enter(chopstick2);
-                Console.WriteLine($"Philosopher {index} got second chopstick!");
+                var fork1 = forks[fork1Index];
                 
+                // lock the first fork
+                Monitor.Enter(fork1);
+                Console.WriteLine($"Philosopher {index} got fork {fork1Index}!");
+
+                Thread.Sleep(FORK_HANDLE_TIME);
+
+                var fork2 = forks[fork2Index];
+                
+                // lock the second fork
+                Monitor.Enter(fork2);
+                Console.WriteLine($"Philosopher {index} got fork {fork2Index}!");
+
                 Eat(index);
 
-                Console.WriteLine($"Philosopher {index} released second chopstick!");
-
-                Console.WriteLine($"Philosopher {index} released first chopstick!");
-
-                Think();
+                Console.WriteLine($"Philosopher {index} released second fork!");
+                Console.WriteLine($"Philosopher {index} released first fork!");
             }
             while (stopwatch.ElapsedMilliseconds < RUN_TIME);
-        }
-
-        private static void TakeChopstick2()
-        {
-            Random random = new Random();
-            var time = random.Next(CHOPSTICK_HANDLE_TIME);
-            Thread.Sleep(time);
         }
 
         public static void Main(string[] args)
@@ -100,24 +85,25 @@ namespace Dining_Philosophers
                 eatingTime.Add(i, 0);
             }
 
-            // set up the chopsticks
+            // set up the forks
             for (int i = 0; i < NUM_PHILOSOPHERS; i++)
             {
-                chopstick[i] = new object();
+                forks[i] = new object();
             }
 
             // set up the philosophers
             for (int i = 0; i < NUM_PHILOSOPHERS; i++)
             {
                 int index = i;
-                object chopstick1 = chopstick[i];
-                object chopstick2 = chopstick[(i + 1) % NUM_PHILOSOPHERS];
-                philosopher[i] = new Thread(
+                int fork1Index = (index - 1 + NUM_PHILOSOPHERS) % NUM_PHILOSOPHERS;
+                int fork2Index = index;
+                philosopher[index] = new Thread(
                     _ =>
                     {
-                        DoWork(index, chopstick1, chopstick2);
+                        DoWork(index, fork1Index, fork2Index);
                     }
                 );
+                philosopher[index].Name = "philosopher " + index;
             }
 
             // start the philosophers
