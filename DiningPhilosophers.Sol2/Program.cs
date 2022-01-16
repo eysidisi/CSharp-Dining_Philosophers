@@ -16,9 +16,6 @@ namespace Dining_Philosophers
         // total program runtime in milliseconds
         public const int RUN_TIME = 2000;
 
-        // maximum amount of time until an object is locked
-        public const int LOCK_TIMEOUT = 10;
-
         // the time it needs until philosopher takes the second fork after taking the first one
         public const int FORK_HANDLE_TIME = 5;
 
