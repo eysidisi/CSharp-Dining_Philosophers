@@ -70,7 +70,7 @@ namespace Dining_Philosophers
 
             Console.WriteLine($"Philosopher {index} got first fork!");
 
-            Takefork2();
+            Thread.Sleep(FORK_HANDLE_TIME);
 
             forkTaken = false;
 
@@ -92,13 +92,6 @@ namespace Dining_Philosophers
 
             Monitor.Exit(fork1);
             Console.WriteLine($"Philosopher {index} released first fork!");
-        }
-
-        private static void Takefork2()
-        {
-            Random random = new Random();
-            var time = random.Next(FORK_HANDLE_TIME);
-            Thread.Sleep(time);
         }
 
         public static void Main(string[] args)
@@ -128,29 +121,32 @@ namespace Dining_Philosophers
             stopwatch.Start();
             Console.WriteLine("Starting philosophers...");
 
-            List<int> eatingPhilosophers = new List<int>();
+            // this list is used for keepiing the track of philosophers eating at that moment
+            List<int> eatingPhilosophersIndex = new List<int>();
             int maxNumOfConcurrentEatingPhilosophers = NUM_PHILOSOPHERS / 2;
 
             while (stopwatch.ElapsedMilliseconds < RUN_TIME)
             {
-                if (eatingPhilosophers.Count == maxNumOfConcurrentEatingPhilosophers)
+
+                if (eatingPhilosophersIndex.Count == maxNumOfConcurrentEatingPhilosophers)
                 {
                     for (int philosopherIndex = 0; philosopherIndex < NUM_PHILOSOPHERS; philosopherIndex++)
                     {
-                        if (eatingPhilosophers.Contains(philosopherIndex) &&
+                        // check if any of the eating philosophers is finished eating
+                        if (eatingPhilosophersIndex.Contains(philosopherIndex) &&
                             philosopher[philosopherIndex].ThreadState == System.Threading.ThreadState.Stopped)
                         {
-                            eatingPhilosophers.Remove(philosopherIndex);
+                            eatingPhilosophersIndex.Remove(philosopherIndex);
                         }
                     }
                 }
 
                 else
                 {
-                    while (eatingPhilosophers.Count != maxNumOfConcurrentEatingPhilosophers)
+                    while (eatingPhilosophersIndex.Count != maxNumOfConcurrentEatingPhilosophers)
                     {
-                        int newPhilosopherIndex = SelectPhilosopher(eatingPhilosophers);
-                        eatingPhilosophers.Add(newPhilosopherIndex);
+                        int newPhilosopherIndex = SelectPhilosopher(eatingPhilosophersIndex);
+                        eatingPhilosophersIndex.Add(newPhilosopherIndex);
 
                         int fork1Index = (newPhilosopherIndex - 1 + NUM_PHILOSOPHERS) % NUM_PHILOSOPHERS;
                         int fork2Index = newPhilosopherIndex;
