@@ -1,5 +1,5 @@
 # Dining-Philosophers
-This application is created to demonstrate a well-known problem called [Dining philosophers problem](https://en.wikipedia.org/wiki/Dining_philosophers_problem) with two different solutions. You can check out this video for a more detailed explanation.
+This application is created to demonstrate a well-known problem called [Dining philosophers problem](https://en.wikipedia.org/wiki/Dining_philosophers_problem) with two different solutions. You can check out [this](https://youtu.be/YaSXKAuz_GU) video for a more detailed explanation.
 
 ## DiningPhilosophers.Problem
 The first project is where a deadlock situation is created on purpose to show the essence of the problem.
